@@ -46,28 +46,55 @@ var benchBytes []byte
 
 func doMarshal(b *testing.B, v interface{}) {
 	b.Run("encoding/json", func(b *testing.B) {
-		for n := 0; n < b.N; n++ {
-			benchBytes, _ = json.Marshal(v)
-		}
+		b.Run("marshal", func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				benchBytes, _ = json.Marshal(v)
+			}
+		})
+		b.Run("unmarshal", func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				if err := json.Unmarshal(benchBytes, &v); err != nil {
+					b.Fatalf("err: %v", err)
+				}
+			}
+		})
 	})
 
 	b.Run("easyjson", func(b *testing.B) {
-		m, ok := v.(easyjson.Marshaler)
-		if !ok {
-			t := reflect.TypeOf(v)
-			fmt.Println(t, "not easyjson.Marshaler")
-			b.Skip()
-		}
+		b.Run("marshal", func(b *testing.B) {
+			m, ok := v.(easyjson.Marshaler)
+			if !ok {
+				t := reflect.TypeOf(v)
+				fmt.Println(t, "not easyjson.Marshaler")
+				b.Skip()
+			}
 
-		b.ResetTimer()
+			b.ResetTimer()
 
-		for n := 0; n < b.N; n++ {
-			easyjson.MarshalToWriter(m, ioutil.Discard)
-		}
+			for n := 0; n < b.N; n++ {
+				easyjson.MarshalToWriter(m, ioutil.Discard)
+			}
+		})
+		b.Run("unmarshal", func(b *testing.B) {
+			m, ok := v.(easyjson.Unmarshaler)
+			if !ok {
+				t := reflect.TypeOf(v)
+				fmt.Println(t, "not easyjson.Unmarshaler")
+				b.Skip()
+			}
+
+			b.ResetTimer()
+
+			for n := 0; n < b.N; n++ {
+				if err := easyjson.Unmarshal(benchBytes, m); err != nil {
+					b.Fatalf("err: %v", err)
+				}
+			}
+		})
 	})
 }
 
-func BenchmarkMarshal(b *testing.B) {
+func BenchmarkJSON(b *testing.B) {
 	NUM_TIMESERIES := 500
 	NUM_DATAPOINTS := 100
 	m := generateData(NUM_TIMESERIES, NUM_DATAPOINTS)
