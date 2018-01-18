@@ -43,9 +43,7 @@ func easyjsonC5568b25DecodeGithubComPrometheusCommonModel(in *jlexer.Lexer, out 
 				if v1 == nil {
 					v1 = new(Sample)
 				}
-				if data := in.Raw(); in.Ok() {
-					in.AddError((*v1).UnmarshalJSON(data))
-				}
+				(*v1).UnmarshalEasyJSON(in)
 			}
 			*out = append(*out, v1)
 			in.WantComma()
@@ -68,7 +66,7 @@ func easyjsonC5568b25EncodeGithubComPrometheusCommonModel(out *jwriter.Writer, i
 			if v3 == nil {
 				out.RawString("null")
 			} else {
-				out.Raw((*v3).MarshalJSON())
+				(*v3).MarshalEasyJSON(out)
 			}
 		}
 		out.RawByte(']')
@@ -154,9 +152,7 @@ func easyjsonC5568b25DecodeGithubComPrometheusCommonModel1(in *jlexer.Lexer, out
 				}
 				for !in.IsDelim(']') {
 					var v5 SamplePair
-					if data := in.Raw(); in.Ok() {
-						in.AddError((v5).UnmarshalJSON(data))
-					}
+					(v5).UnmarshalEasyJSON(in)
 					out.Values = append(out.Values, v5)
 					in.WantComma()
 				}
@@ -176,28 +172,36 @@ func easyjsonC5568b25EncodeGithubComPrometheusCommonModel1(out *jwriter.Writer, 
 	out.RawByte('{')
 	first := true
 	_ = first
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"metric\":")
-	(in.Metric).MarshalEasyJSON(out)
-	if !first {
-		out.RawByte(',')
-	}
-	first = false
-	out.RawString("\"values\":")
-	if in.Values == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
-		out.RawString("null")
-	} else {
-		out.RawByte('[')
-		for v6, v7 := range in.Values {
-			if v6 > 0 {
-				out.RawByte(',')
-			}
-			(v7).MarshalEasyJSON(out)
+	{
+		const prefix string = ",\"metric\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
 		}
-		out.RawByte(']')
+		(in.Metric).MarshalEasyJSON(out)
+	}
+	{
+		const prefix string = ",\"values\":"
+		if first {
+			first = false
+			out.RawString(prefix[1:])
+		} else {
+			out.RawString(prefix)
+		}
+		if in.Values == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v6, v7 := range in.Values {
+				if v6 > 0 {
+					out.RawByte(',')
+				}
+				(v7).MarshalEasyJSON(out)
+			}
+			out.RawByte(']')
+		}
 	}
 	out.RawByte('}')
 }
