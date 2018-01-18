@@ -21,6 +21,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 )
 
@@ -49,6 +50,14 @@ func (v SampleValue) MarshalEasyJSON(w *jwriter.Writer) {
 	w.Buffer.EnsureSpace(20)
 	w.Buffer.Buf = strconv.AppendFloat(w.Buffer.Buf, float64(v), 'f', -1, 64)
 	w.RawByte('"')
+}
+
+func (v *SampleValue) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	f, err := strconv.ParseFloat(in.String(), 64)
+	if err != nil {
+		in.AddError(err)
+	}
+	*v = SampleValue(f)
 }
 
 // MarshalJSON implements json.Marshaler.
@@ -97,6 +106,15 @@ func (s SamplePair) MarshalEasyJSON(w *jwriter.Writer) {
 	w.RawByte(',')
 	s.Value.MarshalEasyJSON(w)
 	w.RawByte(']')
+}
+
+func (s *SamplePair) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	in.Delim('[')
+	s.Timestamp.UnmarshalEasyJSON(in)
+	in.WantComma()
+	s.Value.UnmarshalEasyJSON(in)
+	in.WantComma()
+	in.Delim(']')
 }
 
 // MarshalJSON implements json.Marshaler.
@@ -151,6 +169,43 @@ func (s Sample) String() string {
 		Timestamp: s.Timestamp,
 		Value:     s.Value,
 	})
+}
+
+func (s Sample) MarshalEasyJSON(w *jwriter.Writer) {
+	w.RawByte('{')
+	w.RawString(`"metric":`)
+	s.Metric.MarshalEasyJSON(w)
+	w.RawString(`,"value":`)
+	SamplePair{Timestamp: s.Timestamp, Value: s.Value}.MarshalEasyJSON(w)
+	w.RawByte('}')
+}
+
+func (s *Sample) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeString()
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+
+		switch key {
+		case "metric":
+			s.Metric = Metric{}
+			s.Metric.UnmarshalEasyJSON(in)
+		case "value":
+			sp := SamplePair{}
+			sp.UnmarshalEasyJSON(in)
+			s.Timestamp = sp.Timestamp
+			s.Value = sp.Value
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
 }
 
 // MarshalJSON implements json.Marshaler.

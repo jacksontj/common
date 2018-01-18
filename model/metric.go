@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 )
 
@@ -103,6 +104,19 @@ func (m Metric) MarshalEasyJSON(w *jwriter.Writer) {
 		w.RawString(`"` + string(v) + `"`)
 	}
 	w.RawByte('}')
+}
+
+func (m *Metric) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := LabelName(in.String())
+		in.WantColon()
+		var v4 LabelValue
+		v4 = LabelValue(in.String())
+		(*m)[key] = v4
+		in.WantComma()
+	}
+	in.Delim('}')
 }
 
 // MarshalJSON implements the json.Marshaler interface.

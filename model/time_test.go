@@ -173,15 +173,15 @@ func TestTimeJson(t *testing.T) {
 	}{
 		{
 			in:  Time(1),
-			out: ".001",
+			out: "0.001",
 		},
 		{
 			in:  Time(10),
-			out: ".010",
+			out: "0.010",
 		},
 		{
 			in:  Time(100),
-			out: ".100",
+			out: "0.100",
 		},
 		{
 			in:  Time(10000),
@@ -194,13 +194,28 @@ func TestTimeJson(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		b, err := c.in.MarshalJSON()
-		if err != nil {
-			t.Fatalf("Error marshaling time: %v", err)
+		bytes := make([][]byte, 0)
+		for _, marshaler := range marshalFuncs {
+			b, err := marshaler(c.in)
+			if err != nil {
+				t.Fatalf("Error marshaling time: %v", err)
+			}
+			bytes = append(bytes, b)
+			actual := string(b)
+			if actual != c.out {
+				t.Fatalf("Mismatched time output expected=%s actual=%s", c.out, actual)
+			}
 		}
-		actual := string(b)
-		if actual != c.out {
-			t.Fatalf("Mismatched time output expected=%s actual=%s", c.out, actual)
+
+		for _, b := range bytes {
+			for _, unmarshaler := range unmarshalFuncs {
+				var ts Time
+				unmarshaler(b, &ts)
+				if ts != c.in {
+					t.Fatalf("Mismatched expected=%v actual=%v", c.in, ts)
+				}
+
+			}
 		}
 	}
 }

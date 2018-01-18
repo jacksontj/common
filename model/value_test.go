@@ -19,6 +19,8 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/mailru/easyjson"
 )
 
 func TestEqualValues(t *testing.T) {
@@ -127,6 +129,26 @@ func TestEqualSamples(t *testing.T) {
 
 }
 
+type marshalFunc func(interface{}) ([]byte, error)
+
+var marshalFuncs []marshalFunc
+
+type unmarshalFunc func([]byte, interface{}) error
+
+var unmarshalFuncs []unmarshalFunc
+
+func init() {
+	marshalFuncs = []marshalFunc{
+		json.Marshal,
+		func(v interface{}) ([]byte, error) { return easyjson.Marshal(v.(easyjson.Marshaler)) },
+	}
+
+	unmarshalFuncs = []unmarshalFunc{
+		json.Unmarshal,
+		func(b []byte, v interface{}) error { return easyjson.Unmarshal(b, v.(easyjson.Unmarshaler)) },
+	}
+}
+
 func TestSamplePairJSON(t *testing.T) {
 	input := []struct {
 		plain string
@@ -142,26 +164,30 @@ func TestSamplePairJSON(t *testing.T) {
 	}
 
 	for _, test := range input {
-		b, err := json.Marshal(test.value)
-		if err != nil {
-			t.Error(err)
-			continue
+		for _, marshaler := range marshalFuncs {
+			b, err := marshaler(test.value)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+
+			if string(b) != test.plain {
+				t.Errorf("encoding error: expected %q, got %q", test.plain, b)
+				continue
+			}
 		}
 
-		if string(b) != test.plain {
-			t.Errorf("encoding error: expected %q, got %q", test.plain, b)
-			continue
-		}
+		for _, unmarshaler := range unmarshalFuncs {
+			var sp SamplePair
+			err := unmarshaler([]byte(test.plain), &sp)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
 
-		var sp SamplePair
-		err = json.Unmarshal(b, &sp)
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-
-		if sp != test.value {
-			t.Errorf("decoding error: expected %v, got %v", test.value, sp)
+			if !reflect.DeepEqual(sp, test.value) {
+				t.Errorf("decoding error: expected %v, got %v", test.value, sp)
+			}
 		}
 	}
 }
@@ -184,26 +210,30 @@ func TestSampleJSON(t *testing.T) {
 	}
 
 	for _, test := range input {
-		b, err := json.Marshal(test.value)
-		if err != nil {
-			t.Error(err)
-			continue
+		for _, marshaler := range marshalFuncs {
+			b, err := marshaler(test.value)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+
+			if string(b) != test.plain {
+				t.Errorf("encoding error: expected %q, got %q", test.plain, b)
+				continue
+			}
 		}
 
-		if string(b) != test.plain {
-			t.Errorf("encoding error: expected %q, got %q", test.plain, b)
-			continue
-		}
+		for _, unmarshaler := range unmarshalFuncs {
+			var sv Sample
+			err := unmarshaler([]byte(test.plain), &sv)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
 
-		var sv Sample
-		err = json.Unmarshal(b, &sv)
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-
-		if !reflect.DeepEqual(sv, test.value) {
-			t.Errorf("decoding error: expected %v, got %v", test.value, sv)
+			if !reflect.DeepEqual(sv, test.value) {
+				t.Errorf("decoding error: expected %v, got %v", test.value, sv)
+			}
 		}
 	}
 }
@@ -249,26 +279,30 @@ func TestVectorJSON(t *testing.T) {
 	}
 
 	for _, test := range input {
-		b, err := json.Marshal(test.value)
-		if err != nil {
-			t.Error(err)
-			continue
+		for _, marshaler := range marshalFuncs {
+			b, err := marshaler(test.value)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
+
+			if string(b) != test.plain {
+				t.Errorf("encoding error: expected %q, got %q", test.plain, b)
+				continue
+			}
 		}
 
-		if string(b) != test.plain {
-			t.Errorf("encoding error: expected %q, got %q", test.plain, b)
-			continue
-		}
+		for _, unmarshaler := range unmarshalFuncs {
+			var vec Vector
+			err := unmarshaler([]byte(test.plain), &vec)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
 
-		var vec Vector
-		err = json.Unmarshal(b, &vec)
-		if err != nil {
-			t.Error(err)
-			continue
-		}
-
-		if !reflect.DeepEqual(vec, test.value) {
-			t.Errorf("decoding error: expected %v, got %v", test.value, vec)
+			if !reflect.DeepEqual(vec, test.value) {
+				t.Errorf("decoding error: expected %v, got %v", test.value, vec)
+			}
 		}
 	}
 }

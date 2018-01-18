@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mailru/easyjson/jlexer"
 	"github.com/mailru/easyjson/jwriter"
 )
 
@@ -147,7 +148,7 @@ func (t Time) MarshalEasyJSON(w *jwriter.Writer) {
 	if len(timeStr) > secondDigitLen {
 		w.RawString(timeStr[:len(timeStr)-secondDigitLen])
 	} else {
-	    w.RawByte('0')
+		w.RawByte('0')
 	}
 
 	// put the decimal there
@@ -161,6 +162,10 @@ func (t Time) MarshalEasyJSON(w *jwriter.Writer) {
 	}
 }
 
+func (t *Time) UnmarshalEasyJSON(in *jlexer.Lexer) {
+	(*t) = Time(in.Float64() * float64(second))
+}
+
 // MarshalJSON implements the json.Marshaler interface.
 func (t Time) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
@@ -170,40 +175,9 @@ func (t Time) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (t *Time) UnmarshalJSON(b []byte) error {
-	p := strings.Split(string(b), ".")
-	switch len(p) {
-	case 1:
-		v, err := strconv.ParseInt(string(p[0]), 10, 64)
-		if err != nil {
-			return err
-		}
-		*t = Time(v * second)
-
-	case 2:
-		v, err := strconv.ParseInt(string(p[0]), 10, 64)
-		if err != nil {
-			return err
-		}
-		v *= second
-
-		prec := dotPrecision - len(p[1])
-		if prec < 0 {
-			p[1] = p[1][:dotPrecision]
-		} else if prec > 0 {
-			p[1] = p[1] + strings.Repeat("0", prec)
-		}
-
-		va, err := strconv.ParseInt(p[1], 10, 32)
-		if err != nil {
-			return err
-		}
-
-		*t = Time(v + va)
-
-	default:
-		return fmt.Errorf("invalid time %q", string(b))
-	}
-	return nil
+	r := jlexer.Lexer{Data: b}
+	t.UnmarshalEasyJSON(&r)
+	return r.Error()
 }
 
 // Duration wraps time.Duration. It is used to parse the custom duration format
