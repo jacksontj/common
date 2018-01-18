@@ -146,6 +146,8 @@ func (t Time) MarshalEasyJSON(w *jwriter.Writer) {
 	// Put out anything before a decimal
 	if len(timeStr) > secondDigitLen {
 		w.RawString(timeStr[:len(timeStr)-secondDigitLen])
+	} else {
+	    w.RawByte('0')
 	}
 
 	// put the decimal there
