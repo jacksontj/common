@@ -128,15 +128,15 @@ func (t Time) String() string {
 		retString = timeStr[:len(timeStr)-secondDigitLen]
 	}
 
-	// put the decimal there
-	retString += "."
-
 	// pad (if needed)
 	if lenDelta > 0 {
-		retString += strings.Repeat("0", lenDelta) + timeStr
+		retString += "." + strings.Repeat("0", lenDelta) + timeStr
 	} else {
-		retString += timeStr[len(timeStr)-secondDigitLen:]
+		if timeStr[len(timeStr)-secondDigitLen:] != "000" {
+			retString += "." + timeStr[len(timeStr)-secondDigitLen:]
+		}
 	}
+
 	return retString
 }
 
@@ -151,14 +151,17 @@ func (t Time) MarshalEasyJSON(w *jwriter.Writer) {
 		w.RawByte('0')
 	}
 
-	// put the decimal there
-	w.RawByte('.')
-
 	// pad (if needed)
 	if lenDelta > 0 {
+		// put the decimal there
+		w.RawByte('.')
 		w.RawString(strings.Repeat("0", lenDelta) + timeStr)
 	} else {
-		w.RawString(timeStr[len(timeStr)-secondDigitLen:])
+		if timeStr[len(timeStr)-secondDigitLen:] != "000" {
+			// put the decimal there
+			w.RawByte('.')
+			w.RawString(timeStr[len(timeStr)-secondDigitLen:])
+		}
 	}
 }
 
