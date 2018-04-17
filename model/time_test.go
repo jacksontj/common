@@ -150,11 +150,11 @@ func TestTimeString(t *testing.T) {
 		},
 		{
 			in:  Time(10000),
-			out: "10.000",
+			out: "10",
 		},
 		{
 			in:  Time(1000000),
-			out: "1000.000",
+			out: "1000",
 		},
 	}
 
